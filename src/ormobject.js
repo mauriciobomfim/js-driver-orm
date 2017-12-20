@@ -33,6 +33,41 @@ export default class OrmObject {
                             )))))
     }
 
+    signedCreate(inputs) {
+        return this._connection
+            .signedCreateTransaction(inputs)
+            .then(tx => Promise.resolve(this._connection.getSortedTransactions(tx.id).then((txList) =>
+                new OrmObject(
+                    this._name,
+                    this._schema,
+                    this._connection,
+                    this._appId,
+                    txList
+                ))))
+    }
+
+    prepare(inputs){
+        if (inputs === undefined) {
+            console.error('inputs missing')
+        }
+        const assetPayload = {}
+        assetPayload[`${this._appId}-${this._name}`] = {
+            'schema': this._schema,
+            'id': `id:${this._appId}:${uuid()}`
+        }
+
+        const tx = this._connection.prepareTransaction(
+            inputs.publicKey,
+            assetPayload,
+            inputs.data
+        )   
+        return tx;
+    }
+
+    fulfill(data, privateKey){
+      return this._connection.fulfillTransaction(data, privateKey);
+    }
+
     create(inputs) {
         if (inputs === undefined) {
             console.error('inputs missing')
