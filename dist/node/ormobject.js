@@ -49,7 +49,9 @@ var OrmObject = function () {
 
             var query = input || '"' + this._appId + '-' + this._name + '"';
             return this._connection.searchAssets('"' + query + '"').then(function (assets) {
-                return Promise.all(assets.map(function (asset) {
+                return Promise.all(assets.filter(function (asset) {
+                    return asset.data[_this._appId + '-' + _this._name] != undefined;
+                }).map(function (asset) {
                     return _this._connection.getSortedTransactions(asset.id).then(function (txList) {
                         return new OrmObject(_this._name, _this._schema, _this._connection, _this._appId, txList);
                     });
@@ -57,9 +59,40 @@ var OrmObject = function () {
             });
         }
     }, {
+        key: 'signedCreate',
+        value: function signedCreate(inputs) {
+            var _this2 = this;
+
+            return this._connection.signedCreateTransaction(inputs).then(function (tx) {
+                return Promise.resolve(_this2._connection.getSortedTransactions(tx.id).then(function (txList) {
+                    return new OrmObject(_this2._name, _this2._schema, _this2._connection, _this2._appId, txList);
+                }));
+            });
+        }
+    }, {
+        key: 'prepare',
+        value: function prepare(inputs) {
+            if (inputs === undefined) {
+                console.error('inputs missing');
+            }
+            var assetPayload = {};
+            assetPayload[this._appId + '-' + this._name] = {
+                'schema': this._schema,
+                'id': 'id:' + this._appId + ':' + (0, _v2.default)()
+            };
+
+            var tx = this._connection.prepareTransaction(inputs.publicKey, assetPayload, inputs.data);
+            return tx;
+        }
+    }, {
+        key: 'fulfill',
+        value: function fulfill(data, privateKey) {
+            return this._connection.fulfillTransaction(data, privateKey);
+        }
+    }, {
         key: 'create',
         value: function create(inputs) {
-            var _this2 = this;
+            var _this3 = this;
 
             if (inputs === undefined) {
                 console.error('inputs missing');
@@ -70,37 +103,37 @@ var OrmObject = function () {
                 'id': 'id:' + this._appId + ':' + (0, _v2.default)()
             };
             return this._connection.createTransaction(inputs.keypair.publicKey, inputs.keypair.privateKey, assetPayload, inputs.data).then(function (tx) {
-                return Promise.resolve(_this2._connection.getSortedTransactions(tx.id).then(function (txList) {
-                    return new OrmObject(_this2._name, _this2._schema, _this2._connection, _this2._appId, txList);
+                return Promise.resolve(_this3._connection.getSortedTransactions(tx.id).then(function (txList) {
+                    return new OrmObject(_this3._name, _this3._schema, _this3._connection, _this3._appId, txList);
                 }));
             });
         }
     }, {
         key: 'append',
         value: function append(inputs) {
-            var _this3 = this;
+            var _this4 = this;
 
             if (inputs === undefined) {
                 console.error('inputs missing');
             }
             return this._connection.transferTransaction(this.transactionHistory[this.transactionHistory.length - 1], inputs.keypair.publicKey, inputs.keypair.privateKey, inputs.toPublicKey, inputs.data).then(function () {
-                return Promise.resolve(_this3._connection.getSortedTransactions(_this3.transactionHistory[0].id).then(function (txList) {
-                    return new OrmObject(_this3._name, _this3._schema, _this3._connection, _this3._appId, txList);
+                return Promise.resolve(_this4._connection.getSortedTransactions(_this4.transactionHistory[0].id).then(function (txList) {
+                    return new OrmObject(_this4._name, _this4._schema, _this4._connection, _this4._appId, txList);
                 }));
             });
         }
     }, {
         key: 'burn',
         value: function burn(inputs) {
-            var _this4 = this;
+            var _this5 = this;
 
             if (inputs === undefined) {
                 console.error('inputs missing');
             }
 
             return this._connection.transferTransaction(this.transactionHistory[this.transactionHistory.length - 1], inputs.keypair.publicKey, inputs.keypair.privateKey, BURN_ADDRESS, { status: 'BURNED' }).then(function () {
-                return Promise.resolve(_this4._connection.getSortedTransactions(_this4.transactionHistory[0].id).then(function (txList) {
-                    return new OrmObject(_this4._name, _this4._schema, _this4._connection, _this4._appId, txList);
+                return Promise.resolve(_this5._connection.getSortedTransactions(_this5.transactionHistory[0].id).then(function (txList) {
+                    return new OrmObject(_this5._name, _this5._schema, _this5._connection, _this5._appId, txList);
                 }));
             });
         }

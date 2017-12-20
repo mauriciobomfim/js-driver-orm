@@ -79,17 +79,11 @@ var Connection = function () {
             return this.conn.searchAssets(text);
         }
     }, {
-        key: 'createTransaction',
-        value: function createTransaction(publicKey, privateKey, payload, metadata) {
+        key: 'signedCreateTransaction',
+        value: function signedCreateTransaction(txSigned) {
             var _this2 = this;
 
             try {
-                // Create a transation
-                var tx = driver.Transaction.makeCreateTransaction(payload, metadata, [driver.Transaction.makeOutput(driver.Transaction.makeEd25519Condition(publicKey))], publicKey);
-
-                // sign/fulfill the transaction
-                var txSigned = driver.Transaction.signTransaction(tx, privateKey);
-
                 // send it off to BigchainDB
                 return this.conn.postTransaction(txSigned).then(function () {
                     return _this2.conn.pollStatusAndFetchTransaction(txSigned.id);
@@ -101,9 +95,42 @@ var Connection = function () {
             }
         }
     }, {
+        key: 'prepareTransaction',
+        value: function prepareTransaction(publicKey, assetPayload, metadata) {
+            var tx = driver.Transaction.makeCreateTransaction(assetPayload, metadata, [driver.Transaction.makeOutput(driver.Transaction.makeEd25519Condition(publicKey))], publicKey);
+            return tx;
+        }
+    }, {
+        key: 'fulfillTransaction',
+        value: function fulfillTransaction(tx, privateKey) {
+            return driver.Transaction.signTransaction(tx, privateKey);
+        }
+    }, {
+        key: 'createTransaction',
+        value: function createTransaction(publicKey, privateKey, payload, metadata) {
+            var _this3 = this;
+
+            try {
+                // Create a transation
+                var tx = this.prepareTransaction(publicKey, payload, metadata);
+
+                // sign/fulfill the transaction
+                var txSigned = this.fulfillTransaction(tx, privateKey);
+
+                // send it off to BigchainDB
+                return this.conn.postTransaction(txSigned).then(function () {
+                    return _this3.conn.pollStatusAndFetchTransaction(txSigned.id);
+                }).then(function () {
+                    return txSigned;
+                });
+            } catch (error) {
+                return Promise.reject(error);
+            }
+        }
+    }, {
         key: 'transferTransaction',
         value: function transferTransaction(tx, fromPublicKey, fromPrivateKey, toPublicKey, metadata) {
-            var _this3 = this;
+            var _this4 = this;
 
             try {
                 var txTransfer = driver.Transaction.makeTransferTransaction(tx, metadata, [driver.Transaction.makeOutput(driver.Transaction.makeEd25519Condition(toPublicKey))], 0);
@@ -111,7 +138,7 @@ var Connection = function () {
                 var txTransferSigned = driver.Transaction.signTransaction(txTransfer, fromPrivateKey);
                 // send it off to BigchainDB
                 return this.conn.postTransaction(txTransferSigned).then(function () {
-                    return _this3.conn.pollStatusAndFetchTransaction(txTransferSigned.id);
+                    return _this4.conn.pollStatusAndFetchTransaction(txTransferSigned.id);
                 }).then(function () {
                     return txTransferSigned;
                 });
@@ -154,7 +181,7 @@ var Connection = function () {
                                 break;
                             }
                             tipTransaction = txList.filter(function (tx) {
-                                return (// eslint-disable-line no-loop-func
+                                return (// eslint-disable-line no-loop-func, prefer-destructuring
                                     tx.id === tipTransactionId
                                 );
                             })[0];

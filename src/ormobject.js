@@ -21,8 +21,9 @@ export default class OrmObject {
         const query = input || `"${this._appId}-${this._name}"`
         return this._connection.searchAssets(`"${query}"`)
             .then(assets =>
-                Promise.all(assets.map(asset =>
-                    this._connection.getSortedTransactions(asset.id)
+                Promise.all(assets.filter( asset => { return asset.data[`${this._appId}-${this._name}`] != undefined; })
+                    .map(asset =>
+                        this._connection.getSortedTransactions(asset.id)
                         .then(txList =>
                             new OrmObject(
                                 this._name,
