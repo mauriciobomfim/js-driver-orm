@@ -40,20 +40,40 @@ export default class Connection {
         return this.conn.searchAssets(text)
     }
 
+    signedCreateTransaction(txSigned) {
+        try {
+            // send it off to BigchainDB
+            return this.conn.postTransaction(txSigned)
+                .then(() => this.conn.pollStatusAndFetchTransaction(txSigned.id))
+                .then(() => txSigned)
+        } catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    prepareTransaction(publicKey, assetPayload, metadata) {
+      const tx = driver.Transaction.makeCreateTransaction(
+        assetPayload,
+        metadata,
+        [
+          driver.Transaction.makeOutput(driver.Transaction.makeEd25519Condition(publicKey))
+        ],
+        publicKey
+      )
+      return tx;
+    }
+  
+    fulfillTransaction(tx, privateKey) {
+      return driver.Transaction.signTransaction(tx, privateKey)
+    }
+
     createTransaction(publicKey, privateKey, payload, metadata) {
         try {
             // Create a transation
-            const tx = driver.Transaction.makeCreateTransaction(
-                payload,
-                metadata,
-                [
-                    driver.Transaction.makeOutput(driver.Transaction.makeEd25519Condition(publicKey))
-                ],
-                publicKey
-            )
+            const tx = this.prepareTransaction(publicKey, payload, metadata);
 
             // sign/fulfill the transaction
-            const txSigned = driver.Transaction.signTransaction(tx, privateKey)
+            const txSigned = this.fulfillTransaction(tx, privateKey);
 
             // send it off to BigchainDB
             return this.conn.postTransaction(txSigned)
