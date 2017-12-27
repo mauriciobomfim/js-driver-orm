@@ -13,7 +13,8 @@ export default class OrmObject {
         if (transactionList.length) {
             this.transactionHistory = transactionList
             this.id = transactionList[0].asset.data[`${this._appId}-${this._name}`].id
-            this.data = Object.assign({}, ...transactionList.map(tx => (tx.metadata)))
+            this.data = Object.assign({}, ...transactionList.map(tx => (tx.asset.data)))
+            this.metadata = transactionList.map(tx => tx.metadata)
         }
     }
 
@@ -51,17 +52,19 @@ export default class OrmObject {
         if (inputs === undefined) {
             console.error('inputs missing')
         }
-        const assetPayload = {}
-        assetPayload[`${this._appId}-${this._name}`] = {
+        const assetPayload = {
             'schema': this._schema,
             'id': `id:${this._appId}:${uuid()}`
         }
 
+        const assetData = {}
+        assetData[`${this._appId}-${this._name}`] = Object.assign(assetPayload, inputs.data)
+
         const tx = this._connection.prepareTransaction(
             inputs.publicKey,
-            assetPayload,
-            inputs.data
-        )   
+            assetData,
+            inputs.metadata
+        )
         return tx;
     }
 

@@ -37,8 +37,11 @@ var OrmObject = function () {
             this.transactionHistory = transactionList;
             this.id = transactionList[0].asset.data[this._appId + '-' + this._name].id;
             this.data = _extends.apply(undefined, [{}].concat(_toConsumableArray(transactionList.map(function (tx) {
-                return tx.metadata;
+                return tx.asset.data;
             }))));
+            this.metadata = transactionList.map(function (tx) {
+                return tx.metadata;
+            });
         }
     }
 
@@ -75,13 +78,15 @@ var OrmObject = function () {
             if (inputs === undefined) {
                 console.error('inputs missing');
             }
-            var assetPayload = {};
-            assetPayload[this._appId + '-' + this._name] = {
+            var assetPayload = {
                 'schema': this._schema,
                 'id': 'id:' + this._appId + ':' + (0, _v2.default)()
             };
 
-            var tx = this._connection.prepareTransaction(inputs.publicKey, assetPayload, inputs.data);
+            var assetData = {};
+            assetData[this._appId + '-' + this._name] = _extends(assetPayload, inputs.data);
+
+            var tx = this._connection.prepareTransaction(inputs.publicKey, assetData, inputs.metadata);
             return tx;
         }
     }, {
