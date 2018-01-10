@@ -76,17 +76,21 @@ export default class OrmObject {
         if (inputs === undefined) {
             console.error('inputs missing')
         }
-        const assetPayload = {}
-        assetPayload[`${this._appId}-${this._name}`] = {
+
+        const assetPayload = {
             'schema': this._schema,
             'id': `id:${this._appId}:${uuid()}`
         }
+
+        const assetData = {}
+        assetData[`${this._appId}-${this._name}`] = Object.assign(assetPayload, inputs.data)
+
         return this._connection
             .createTransaction(
                 inputs.keypair.publicKey,
                 inputs.keypair.privateKey,
-                assetPayload,
-                inputs.data
+                assetData,
+                inputs.metadata,
             )
             .then(tx => Promise.resolve(this._connection.getSortedTransactions(tx.id).then((txList) =>
                 new OrmObject(

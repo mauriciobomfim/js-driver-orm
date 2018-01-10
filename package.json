@@ -38,14 +38,14 @@
     "release-it": "^5.1.2",
     "rimraf": "^2.6.2",
     "sinon": "^4.0.0",
-    "webpack": "^3.8.1"
+    "webpack": "^3.10.0"
   },
   "scripts": {
     "lint": "./node_modules/eslint/bin/eslint.js ./{src,test}",
     "build": "npm run clean && npm run build:cjs && npm run build:dist",
-    "build:bundle": "webpack",
+    "build:bundle": "webpack -p",
     "build:cjs": "cross-env BABEL_ENV=cjs babel ./src -d dist/node",
-    "build:dist": "cross-env NODE_ENV=production webpack -p",
+    "build:dist": "cross-env NODE_ENV=production webpack",
     "clean": "rimraf dist/bundle dist/node",
     "test": "npm run lint && nyc ava test/ && npm run thanks && npm run report-coverage",
     "thanks": "cowsay Hi, thanks for your interest in BigchainDB. We appreciate your contribution!",

@@ -102,12 +102,16 @@ var OrmObject = function () {
             if (inputs === undefined) {
                 console.error('inputs missing');
             }
-            var assetPayload = {};
-            assetPayload[this._appId + '-' + this._name] = {
+
+            var assetPayload = {
                 'schema': this._schema,
                 'id': 'id:' + this._appId + ':' + (0, _v2.default)()
             };
-            return this._connection.createTransaction(inputs.keypair.publicKey, inputs.keypair.privateKey, assetPayload, inputs.data).then(function (tx) {
+
+            var assetData = {};
+            assetData[this._appId + '-' + this._name] = _extends(assetPayload, inputs.data);
+
+            return this._connection.createTransaction(inputs.keypair.publicKey, inputs.keypair.privateKey, assetData, inputs.metadata).then(function (tx) {
                 return Promise.resolve(_this3._connection.getSortedTransactions(tx.id).then(function (txList) {
                     return new OrmObject(_this3._name, _this3._schema, _this3._connection, _this3._appId, txList);
                 }));
